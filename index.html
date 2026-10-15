@@ -1,0 +1,1052 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Карго-миссия «Северная Ягода»</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: ночной порт. Один экран-«причал» за раз, сверху HUD рейса; каждая стратегия — свой цвет контейнера. */
+:root{
+  --sea:#0A1624; --deck:#11233A; --deck2:#18304E; --line:#29466A; --ink:#EAF1F7; --muted:#94AAC0;
+  --signal:#FFD047; --signal-ink:#1A1300;
+  --c-ind:#4C8DFF; --c-dir:#FF6B2C; --c-all:#2FBFA8; --c-jv:#E5486A; --c-fdi:#7D8FA6;
+  --good:#3EDB98; --bad:#FF5B70;
+  --f-display:'Unbounded', 'Arial Black', system-ui, sans-serif;
+  --f-body:'Golos Text', 'Segoe UI', system-ui, sans-serif;
+  --f-mono:'JetBrains Mono', ui-monospace, 'Courier New', monospace;
+  --r:14px;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{background:var(--sea);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;
+  background-image:
+   radial-gradient(1200px 500px at 85% -10%, rgba(76,141,255,.16), transparent 60%),
+   radial-gradient(900px 400px at -10% 110%, rgba(47,191,168,.10), transparent 60%);
+  background-attachment:fixed;}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--signal);outline-offset:3px}
+.mono{font-family:var(--f-mono);letter-spacing:.04em}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.15}
+p{margin:0}
+
+/* HUD */
+.hud{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:rgba(10,22,36,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.hud-in{max-width:1040px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:10px;
+  padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px))}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0}
+.brand b{font-family:var(--f-display);font-size:13px;letter-spacing:.06em}
+.brand small{display:block;color:var(--muted);font-family:var(--f-mono);font-size:11px}
+.hud-stat{display:flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:13px;background:var(--deck);border:1px solid var(--line);padding:6px 10px;border-radius:999px;font-variant-numeric:tabular-nums}
+.hud-stat em{font-style:normal;color:var(--signal);font-weight:700}
+.hud-btn{background:var(--deck);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;font-family:var(--f-mono)}
+.hud-btn:hover{border-color:var(--signal)}
+
+/* Stage */
+main{max-width:1040px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px))}
+.screen{animation:enter .45s cubic-bezier(.2,.8,.2,1)}
+@keyframes enter{from{opacity:.2;transform:translateY(14px)}to{opacity:1;transform:none}}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.h1{font-size:clamp(28px,5vw,46px);font-weight:800}
+.h2{font-size:clamp(20px,3.2vw,28px);font-weight:700}
+.lead{color:#C7D5E3;font-size:17px;max-width:62ch}
+.stack{display:flex;flex-direction:column;gap:16px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+
+.btn{display:inline-flex;align-items:center;gap:10px;border:0;border-radius:12px;padding:14px 20px;font-weight:700;font-size:16px;background:var(--signal);color:var(--signal-ink);box-shadow:0 4px 0 #B88F12;transition:transform .12s, box-shadow .12s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 0 #B88F12}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 #B88F12}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line);box-shadow:none}
+.btn.ghost:hover{border-color:var(--signal)}
+.btn[disabled]{opacity:.4;pointer-events:none}
+
+.panel{background:var(--deck);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.panel h3{font-size:16px;margin-bottom:8px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:14px}
+.grid2>*,.grid3>*{min-width:0}
+ul.clean{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+ul.clean li{display:flex;gap:10px;align-items:flex-start}
+ul.clean li::before{content:"";flex:none;width:8px;height:8px;margin-top:8px;border-radius:2px;background:var(--dot,var(--muted))}
+.plus li{--dot:var(--good)} .minus li{--dot:var(--bad)}
+.note{border-left:3px solid var(--signal);padding:10px 14px;background:rgba(255,208,71,.07);border-radius:0 10px 10px 0;color:#DCE6EF}
+.note b{color:var(--signal)}
+
+/* Intro */
+.intro{display:grid;grid-template-columns:1.1fr .9fr;gap:28px;align-items:center}
+.intro>*{min-width:0}
+@media (max-width:820px){.intro{grid-template-columns:1fr}}
+.intro .h1 span{display:block;color:var(--signal)}
+.ship-wrap{position:relative;aspect-ratio:5/4;max-width:100%;border-radius:20px;overflow:hidden;background:linear-gradient(#0E2440,#0A1A2E 70%);border:1px solid var(--line)}
+.ship-wrap svg{width:100%;height:100%;display:block}
+.bob{animation:bob 4s ease-in-out infinite;transform-origin:50% 70%}
+@keyframes bob{50%{transform:translateY(-6px) rotate(-1deg)}}
+.wave{animation:wave 6s linear infinite}
+.wave.w2{animation-duration:9s;animation-direction:reverse}
+@keyframes wave{to{transform:translateX(-200px)}}
+.name-field{display:flex;flex-direction:column;gap:6px;max-width:420px}
+.name-field label{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.name-field input{background:var(--deck);border:1.5px solid var(--line);border-radius:12px;color:var(--ink);padding:13px 14px;font:inherit;font-size:17px}
+.legend{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:8px;font-size:13px;padding:5px 10px;border-radius:999px;background:var(--deck);border:1px solid var(--line)}
+.chip i{width:14px;height:10px;border-radius:2px;background:var(--cc)}
+
+/* Hub */
+.hub-head{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+.route{list-style:none;margin:0;padding:0;position:relative;display:flex;flex-direction:column;gap:14px}
+.route::before{content:"";position:absolute;left:31px;top:20px;bottom:20px;border-left:2px dashed var(--line)}
+.port button{width:100%;display:flex;align-items:center;gap:16px;text-align:left;background:var(--deck);border:1px solid var(--line);border-radius:16px;padding:14px 16px 14px 10px;position:relative;transition:transform .15s,border-color .15s}
+.port.open button:hover,.port.done button:hover{transform:translateX(4px);border-color:var(--pc)}
+.port.locked button{opacity:.45;cursor:not-allowed}
+.pin{flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:15px;background:var(--sea);border:2px solid var(--pc);color:var(--pc);position:relative;z-index:1}
+.port.done .pin{background:var(--pc);color:#0A1624}
+.port.current .pin{animation:pulse 1.8s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--pc) 60%,transparent)}100%{box-shadow:0 0 0 14px transparent}}
+.port-body{display:flex;flex-direction:column;min-width:0;flex:1}
+.port-body strong{font-family:var(--f-display);font-size:17px;font-weight:700}
+.port-body span:last-child{color:var(--muted);font-size:14px}
+.port-code{font-size:11px;color:var(--pc);text-transform:uppercase;letter-spacing:.12em}
+.port-state{font-size:12px;color:var(--muted);white-space:nowrap}
+.port.done .port-state{color:var(--good)}
+.port.current .port-state{color:var(--signal)}
+@media (max-width:520px){.port-state{display:none}}
+.hub-foot{margin-top:28px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:14px}
+.rankbar{height:10px;background:var(--sea);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+.rankbar i{display:block;height:100%;background:linear-gradient(90deg,var(--c-ind),var(--c-all),var(--signal));border-radius:99px;transition:width .8s}
+.stamps{display:flex;flex-wrap:wrap;gap:10px}
+.stamp{--sc:var(--signal);display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:96px;height:66px;border:3px double var(--sc);color:var(--sc);border-radius:10px;font-family:var(--f-mono);font-size:9.5px;line-height:1.2;text-align:center;text-transform:uppercase;letter-spacing:.06em;transform:rotate(var(--rot,-4deg));padding:4px;opacity:.95}
+.stamp b{font-family:var(--f-display);font-size:10px;letter-spacing:0}
+.stamp.empty{--sc:var(--line);opacity:.6}
+.linkish{background:none;border:0;color:var(--muted);text-decoration:underline;font-size:13px;padding:4px 0}
+
+/* Level header */
+.lv-head{display:flex;flex-direction:column;gap:12px;margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.lv-tag{display:inline-flex;align-items:center;gap:10px;font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--lc)}
+.lv-tag i{width:26px;height:16px;border-radius:3px;background:var(--lc);
+  background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.25) 0 2px,transparent 2px 5px)}
+.steps{display:flex;gap:6px;flex-wrap:wrap}
+.step{border:1px solid var(--line);background:var(--deck);border-radius:999px;padding:6px 12px;font-size:13px;font-family:var(--f-mono);color:var(--muted)}
+.step.on{background:var(--lc);border-color:var(--lc);color:#0A1624;font-weight:700}
+.step:disabled{opacity:.5;cursor:default}
+
+/* Ladder */
+.ladder-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+@media (max-width:640px){.ladder-tabs{grid-template-columns:repeat(2,1fr)}}
+.ltab{border:1.5px solid var(--line);background:var(--deck);border-radius:12px;padding:10px;text-align:left;display:flex;flex-direction:column;gap:8px;min-width:0}
+.ltab .cont{height:22px;border-radius:3px;background:var(--cc);background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.22) 0 2px,transparent 2px 6px)}
+.ltab span{font-size:13px;font-weight:600;line-height:1.25}
+.ltab.on{border-color:var(--cc);background:color-mix(in srgb,var(--cc) 16%,var(--deck))}
+.stairs{display:flex;align-items:flex-end;gap:6px;height:90px}
+.stairs div{flex:1;border-radius:4px 4px 0 0;background:var(--cc);opacity:.35;transition:opacity .3s, transform .3s;background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.22) 0 2px,transparent 2px 6px)}
+.stairs div.on{opacity:1;transform:translateY(-4px)}
+.bars{display:flex;flex-direction:column;gap:12px}
+.bar{display:grid;grid-template-columns:minmax(120px,190px) 1fr 34px;gap:10px;align-items:center;font-size:14px}
+.bar .track{height:12px;background:var(--sea);border-radius:99px;border:1px solid var(--line);overflow:hidden}
+.bar .fill{height:100%;background:var(--cc);border-radius:99px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.bar b{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right}
+@media (max-width:460px){.bar{grid-template-columns:1fr 34px}.bar .track{grid-column:1/-1;grid-row:2}}
+
+/* Flip cards */
+.flips{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:14px}
+.flip{perspective:900px;min-height:250px;border:0;background:none;padding:0;text-align:left}
+.flip-in{position:relative;width:100%;height:100%;min-height:250px;transition:transform .6s;transform-style:preserve-3d}
+.flip.on .flip-in{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px;backface-visibility:hidden;-webkit-backface-visibility:hidden;border:1px solid var(--line);overflow:auto}
+.front{background:var(--deck);justify-content:space-between}
+.front .crate{height:54px;border-radius:6px;background:var(--cc);background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.24) 0 3px,transparent 3px 9px);display:flex;align-items:center;padding:0 12px;font-family:var(--f-mono);font-weight:700;color:#0A1624;font-size:13px;letter-spacing:.08em}
+.front strong{font-family:var(--f-display);font-size:16px;line-height:1.25}
+.front small{color:var(--muted);font-family:var(--f-mono);font-size:11px}
+.back{background:var(--deck2);transform:rotateY(180deg);font-size:14px;line-height:1.5}
+.back .ex{margin-top:auto;font-size:13px;color:#CBD8E5;border-top:1px dashed var(--line);padding-top:8px}
+.back .ex b{color:var(--signal);font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;display:block}
+
+/* Table */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r)}
+table{width:100%;border-collapse:collapse;min-width:520px;font-size:14px}
+th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);background:var(--deck2)}
+tr:last-child td{border-bottom:0}
+td:first-child{color:var(--muted)}
+
+/* Sorter / quiz shared */
+.game-card{background:var(--deck);border:1px solid var(--line);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:16px}
+.g-top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-family:var(--f-mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.g-top em{font-style:normal;color:var(--signal);font-weight:700}
+.combo{padding:2px 10px;border-radius:99px;border:1px solid var(--line)}
+.combo.hot{border-color:var(--signal);color:var(--signal);animation:hot .6s ease-in-out infinite alternate}
+@keyframes hot{to{box-shadow:0 0 14px rgba(255,208,71,.5)}}
+.timer{height:8px;border-radius:99px;background:var(--sea);overflow:hidden;border:1px solid var(--line)}
+.timer i{display:block;height:100%;width:100%;background:var(--good);border-radius:99px}
+.timer i.low{background:var(--bad)}
+.cargo{position:relative;background:var(--deck2);border:2px dashed var(--line);border-radius:14px;padding:22px 20px 20px;min-height:130px;display:flex;align-items:center;transition:transform .45s cubic-bezier(.5,0,.5,1),opacity .45s}
+.cargo p{font-size:clamp(17px,2.3vw,20px);font-weight:500;line-height:1.45}
+.cargo .ctag{position:absolute;top:-11px;left:16px;background:var(--signal);color:var(--signal-ink);font-family:var(--f-mono);font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.08em}
+.cargo.fly-l{transform:translateX(-120%) rotate(-8deg);opacity:0}
+.cargo.fly-r{transform:translateX(120%) rotate(8deg);opacity:0}
+.cargo.shake{animation:shake .4s}
+@keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.gates{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.gate{border:0;border-radius:14px;padding:18px 12px;font-family:var(--f-display);font-weight:700;font-size:clamp(14px,2.4vw,18px);color:#0A1624;background:var(--gc);box-shadow:0 5px 0 color-mix(in srgb,var(--gc) 55%,#000);transition:transform .1s}
+.gate:hover{transform:translateY(-2px)}
+.gate:active{transform:translateY(3px);box-shadow:0 2px 0 color-mix(in srgb,var(--gc) 55%,#000)}
+.gate small{display:block;font-family:var(--f-mono);font-weight:500;font-size:11px;opacity:.75;margin-top:4px}
+.gate:disabled{opacity:.35}
+.fb{border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;animation:enter .3s}
+.fb.ok{background:color-mix(in srgb,var(--good) 14%,var(--deck));border:1px solid color-mix(in srgb,var(--good) 50%,transparent)}
+.fb.no{background:color-mix(in srgb,var(--bad) 13%,var(--deck));border:1px solid color-mix(in srgb,var(--bad) 50%,transparent)}
+.fb.mid{background:color-mix(in srgb,var(--signal) 12%,var(--deck));border:1px solid color-mix(in srgb,var(--signal) 45%,transparent)}
+.fb strong{font-family:var(--f-display);font-size:15px}
+.fb.ok strong{color:var(--good)} .fb.no strong{color:var(--bad)} .fb.mid strong{color:var(--signal)}
+.fb .btn{align-self:flex-start;padding:10px 16px;font-size:15px}
+.kbd{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+
+.quiz h3{font-family:var(--f-body);font-weight:700;font-size:clamp(18px,2.4vw,21px);line-height:1.4}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{text-align:left;background:var(--deck2);border:1.5px solid var(--line);border-radius:12px;padding:13px 16px;font-size:16px;display:flex;gap:12px;align-items:flex-start;transition:border-color .15s, transform .15s}
+.opt:hover:not(:disabled){border-color:var(--signal);transform:translateX(3px)}
+.opt .k{flex:none;font-family:var(--f-mono);font-weight:700;color:var(--muted);width:22px}
+.opt.right{border-color:var(--good);background:color-mix(in srgb,var(--good) 14%,var(--deck2))}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,var(--deck2))}
+.opt.part{border-color:var(--signal)}
+.opt:disabled{cursor:default}
+.opt .sw{flex:none;width:18px;height:14px;border-radius:3px;margin-top:4px;background:var(--cc);background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.25) 0 2px,transparent 2px 5px)}
+
+/* Order puzzle */
+.slots{display:flex;flex-direction:column;gap:8px}
+.slot{display:flex;align-items:center;gap:12px;border:1.5px dashed var(--line);border-radius:12px;padding:10px 14px;min-height:50px;color:var(--muted);font-size:15px}
+.slot b{font-family:var(--f-mono);width:20px}
+.slot.filled{border-style:solid;border-color:var(--cc);color:var(--ink);background:color-mix(in srgb,var(--cc) 14%,var(--deck));animation:enter .3s}
+.pool{display:flex;flex-wrap:wrap;gap:10px}
+.pchip{border:1.5px solid var(--line);background:var(--deck2);border-radius:12px;padding:10px 14px;font-size:15px;font-weight:600;display:flex;gap:10px;align-items:center}
+.pchip i{width:16px;height:12px;border-radius:2px;background:var(--cc)}
+.pchip:hover{border-color:var(--signal)}
+.pchip.shake{animation:shake .4s;border-color:var(--bad)}
+
+/* Meters (negotiation) */
+.meters{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:560px){.meters{grid-template-columns:1fr}}
+.meter{background:var(--deck2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.meter span{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);display:flex;justify-content:space-between}
+.meter span b{color:var(--ink);font-variant-numeric:tabular-nums}
+.meter .track{height:10px;background:var(--sea);border-radius:99px;overflow:hidden}
+.meter .fill{height:100%;border-radius:99px;transition:width .7s cubic-bezier(.2,.8,.2,1),background .3s}
+.delta{font-family:var(--f-mono);font-size:12px;font-weight:700}
+.delta.up{color:var(--good)} .delta.dn{color:var(--bad)}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px}
+.choice{text-align:left;background:var(--deck2);border:1.5px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px;transition:border-color .15s,transform .15s}
+.choice:hover:not(:disabled){border-color:var(--c-jv);transform:translateY(-3px)}
+.choice b{font-size:15px}
+.choice small{color:var(--muted);font-size:13px}
+.choice.picked{border-color:var(--signal)}
+.choice:disabled{cursor:default}
+.partner{display:flex;gap:12px;align-items:flex-start}
+.avatar{flex:none;width:44px;height:44px;border-radius:12px;background:var(--c-all);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;color:#0A1624}
+.bubble{background:var(--deck2);border:1px solid var(--line);border-radius:4px 14px 14px 14px;padding:10px 14px;font-size:15px}
+
+/* Memory */
+.mem{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:640px){.mem{grid-template-columns:repeat(2,1fr)}}
+.mcard{perspective:700px;border:0;background:none;padding:0;min-height:130px}
+.mcard .flip-in{min-height:130px}
+.mcard .face{padding:12px;justify-content:center;font-size:14px;line-height:1.35}
+.mcard .front{background:var(--deck2);align-items:center;justify-content:center;
+  background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.04) 0 3px,transparent 3px 10px)}
+.mcard .front span{font-family:var(--f-display);font-size:24px;color:var(--c-all)}
+.mcard .back.name{font-family:var(--f-display);font-size:15px;font-weight:700;color:var(--c-all)}
+.mcard.matched .back{border-color:var(--good);background:color-mix(in srgb,var(--good) 14%,var(--deck2))}
+.mcard.on .flip-in,.mcard.matched .flip-in{transform:rotateY(180deg)}
+
+/* Boss */
+.lives{display:flex;gap:5px}
+.lives i{width:20px;height:14px;border-radius:2px;background:var(--c-dir);background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.25) 0 2px,transparent 2px 5px)}
+.lives i.lost{background:var(--line)}
+.case-co{font-family:var(--f-mono);font-size:12px;color:var(--signal);letter-spacing:.08em;text-transform:uppercase}
+
+/* Overlay */
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(5,12,20,.78);display:grid;place-items:center;padding:20px;padding-left:max(20px, env(safe-area-inset-left,0px));padding-right:max(20px, env(safe-area-inset-right,0px));backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.modal{background:var(--deck);border:1px solid var(--line);border-radius:20px;padding:28px;max-width:460px;width:100%;display:flex;flex-direction:column;gap:16px;align-items:center;text-align:center;animation:pop .45s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{from{transform:scale(.85);opacity:0}}
+.big-stamp{width:180px;height:120px;font-size:12px;transform:rotate(-8deg);animation:slam .55s cubic-bezier(.2,1.6,.4,1)}
+.big-stamp b{font-size:15px}
+@keyframes slam{0%{transform:scale(2.6) rotate(-20deg);opacity:0}100%{transform:scale(1) rotate(-8deg);opacity:1}}
+.xp-big{font-family:var(--f-display);font-size:40px;font-weight:800;color:var(--signal);font-variant-numeric:tabular-nums}
+.badges{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.badge{font-family:var(--f-mono);font-size:12px;padding:5px 10px;border-radius:999px;border:1px solid var(--signal);color:var(--signal)}
+
+/* Certificate */
+.cert{background:#F3EEE2;color:#1C2633;border-radius:6px;padding:clamp(18px,4vw,36px);position:relative;overflow:hidden;
+  background-image:repeating-linear-gradient(0deg,transparent 0 31px,rgba(28,38,51,.06) 31px 32px)}
+.cert::before{content:"";position:absolute;inset:10px;border:2px solid #1C2633;border-radius:4px;pointer-events:none}
+.cert-in{position:relative;display:flex;flex-direction:column;gap:16px}
+.cert .eyebrow{color:#5B6878}
+.cert h2{font-size:clamp(22px,4vw,34px);font-weight:800}
+.cert dl{display:grid;grid-template-columns:minmax(120px,200px) 1fr;gap:6px 16px;margin:0;font-size:15px}
+.cert dt{font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#5B6878;padding-top:2px}
+.cert dd{margin:0;font-weight:600;border-bottom:1px dotted #8A96A3;min-width:0}
+@media (max-width:480px){.cert dl{grid-template-columns:1fr}.cert dd{margin-bottom:8px}}
+.cert .stamp{--sc:#B4233C}
+.cert .rank{font-family:var(--f-display);font-size:clamp(20px,3.5vw,28px);color:#B4233C}
+
+#fx{position:fixed;inset:0;pointer-events:none;z-index:60;width:100%;height:100%}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+
+<header class="hud">
+  <div class="hud-in">
+    <div class="brand">
+      <svg width="34" height="26" viewBox="0 0 34 26" aria-hidden="true"><rect x="1" y="3" width="15" height="9" rx="1.5" fill="var(--c-ind)"/><rect x="18" y="3" width="15" height="9" rx="1.5" fill="var(--c-dir)"/><rect x="1" y="14" width="15" height="9" rx="1.5" fill="var(--c-all)"/><rect x="18" y="14" width="15" height="9" rx="1.5" fill="var(--c-jv)"/></svg>
+      <div><b>КАРГО-МИССИЯ</b><small>Рейс СЯ-2026 · Петрозаводск → мир</small></div>
+    </div>
+    <span class="hud-stat" title="Очки опыта">XP <em id="hudXp">0</em></span>
+    <span class="hud-stat" title="Таможенные штампы">Штампы <em id="hudSt">0/6</em></span>
+    <button class="hud-btn" id="sndBtn" onclick="toggleSound()" aria-pressed="true">Звук: вкл</button>
+    <button class="hud-btn" onclick="go('hub')">Карта</button>
+  </div>
+</header>
+<main id="stage" aria-live="polite"></main>
+<div id="overlay" class="overlay" hidden></div>
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<script>
+/* ============ ДАННЫЕ ============ */
+const ST = {
+  indirect:{name:'Косвенный экспорт', short:'Косвенный экспорт', cc:'var(--c-ind)'},
+  direct:{name:'Прямой экспорт', short:'Прямой экспорт', cc:'var(--c-dir)'},
+  alliance:{name:'Стратегический альянс', short:'Стратегический альянс', cc:'var(--c-all)'},
+  jv:{name:'Совместное предприятие', short:'Совместное предприятие', cc:'var(--c-jv)'},
+  fdi:{name:'Прямые инвестиции', short:'Прямые инвестиции', cc:'var(--c-fdi)'}
+};
+const LEVELS = [
+  {id:'l1', num:'01', title:'Лестница вовлечённости', sub:'Карта всех стратегий выхода на рынок', color:'var(--signal)', max:100},
+  {id:'l2', num:'02', title:'Косвенный экспорт', sub:'Продаём через отечественных посредников', color:'var(--c-ind)', max:110},
+  {id:'l3', num:'03', title:'Прямой экспорт', sub:'Агенты, дистрибьюторы, свой филиал', color:'var(--c-dir)', max:80},
+  {id:'l4', num:'04', title:'Совместное предприятие', sub:'Общий капитал и общее управление', color:'var(--c-jv)', max:160},
+  {id:'l5', num:'05', title:'Стратегический альянс', sub:'Сотрудничество без слияния', color:'var(--c-all)', max:160},
+  {id:'boss', num:'06', title:'Совет директоров', sub:'Финальный экзамен: 8 кейсов на время', color:'var(--signal)', max:240}
+];
+const MAX_TOTAL = LEVELS.reduce((s,l)=>s+l.max,0);
+const RANKS = [
+  {min:.85, name:'Глобальный стратег', txt:'Совет директоров доверяет вам выход на любой рынок.'},
+  {min:.65, name:'Директор по ВЭД', txt:'Уверенно различаете стратегии и видите их компромиссы.'},
+  {min:.40, name:'Экспорт-менеджер', txt:'База есть. Перепройдите причалы с ошибками, чтобы вырасти.'},
+  {min:0, name:'Стажёр отдела логистики', txt:'Начало положено. Вернитесь к брифингам и попробуйте снова.'}
+];
+
+/* Уровень 1 */
+const LADDER = [
+  {k:'indirect', vals:[1,1,1,1,1], d:'Продаём за рубеж через отечественных посредников. Сама фирма может вообще не заниматься внешнеэкономической деятельностью.',
+    plus:['Минимум вложений и риска','Быстрый старт без отдела ВЭД'], minus:['Почти нет контроля над ценой и брендом','Посредник забирает часть маржи, рынок мы не узнаём'],
+    ex:'Торговый дом из Москвы выкупает варенье и сам везёт его в Казахстан.'},
+  {k:'direct', vals:[2,3,2,3,3], d:'Фирма сама занимается экспортом: экспортный отдел, зарубежные агенты и дистрибьюторы, сбытовой филиал за рубежом.',
+    plus:['Больше контроля и выше маржа','Прямой контакт с рынком и клиентами'], minus:['Нужны компетенции ВЭД: таможня, Инкотермс, валюта','Выше затраты и коммерческий риск'],
+    ex:'«Северная Ягода» нанимает агента в Дубае и сама отгружает товар сетям.'},
+  {k:'alliance', vals:[3,2,3,3,4], d:'Договор о сотрудничестве независимых компаний ради общей цели. Обе стороны сохраняют самостоятельность, новая компания не обязательна.',
+    plus:['Доступ к ресурсам и сетям партнёра','Гибкость: проще начать и проще выйти'], minus:['Решения согласуются с партнёром','Риск утечки знаний и конфликта интересов'],
+    ex:'Кобрендинг с китайской сетью кофеен: ягодные сиропы в её напитках.'},
+  {k:'jv', vals:[4,4,4,4,5], d:'Создаём с местным партнёром новую компанию с общим капиталом, общим управлением и общей прибылью.',
+    plus:['Знания и связи местного партнёра','Делим инвестиции и риски, обходим ограничения для иностранцев'], minus:['Сложное совместное управление, возможен тупик','Конфликты из-за прибыли и технологий'],
+    ex:'Завод ягодных десертов во Вьетнаме вместе с местной компанией, доли 51/49.'}
+];
+const LADDER_PARAMS = ['Инвестиции','Контроль над маркетингом','Риск','Потенциал прибыли','Знание рынка, которое мы получаем'];
+const ORDER = ['indirect','direct','alliance','jv','fdi'];
+const ORDER_LABEL = {indirect:'Косвенный экспорт', direct:'Прямой экспорт', alliance:'Стратегический альянс', jv:'Совместное предприятие', fdi:'Свой завод за рубежом (прямые инвестиции)'};
+const Q_L1 = [
+  {q:'Маленькая сыроварня хочет попробовать зарубежный рынок, почти ничего не вкладывая. Специалистов по ВЭД у неё нет. Что подходит лучше всего?',
+   options:['Косвенный экспорт через отечественного посредника','Совместное предприятие с иностранной фирмой','Собственный сбытовой филиал за рубежом','Строительство завода в стране рынка'], answer:0,
+   ex:'Косвенный экспорт даёт самый дешёвый и быстрый старт: всю внешнеэкономическую работу делает посредник внутри страны.'},
+  {q:'Чем выше вовлечённость компании в зарубежный рынок, тем…',
+   options:['больше потенциальная прибыль и знание рынка, но выше вложения и риск','ниже риск и выше контроль одновременно','меньше нужно знать о рынке','быстрее и дешевле выход на рынок'], answer:0,
+   ex:'Это главный компромисс всей темы: контроль и прибыль растут вместе с инвестициями и риском.'}
+];
+
+/* Уровень 2 */
+const CARDS_IND = [
+  {tag:'ЭТК', t:'Экспортная торговая компания', d:'Покупает товар у производителя внутри страны и сама продаёт его за рубеж. Становится собственником товара и берёт на себя транспортные, валютные и коммерческие риски.', ex:'Торговый дом выкупает у «Северной Ягоды» 20 тонн варенья и везёт в Казахстан по своим контрактам.'},
+  {tag:'ЭУК', t:'Экспортная управляющая компания', d:'Работает как наёмный экспортный отдел: ищет покупателей, ведёт переговоры, оформляет документы и таможню. Товар обычно не выкупает, получает комиссию или фиксированную плату.', ex:'ВЭД-консалтинг за 8% комиссии находит покупателей в ОАЭ и готовит весь пакет документов.'},
+  {tag:'Закупщик', t:'Закупочный офис иностранного покупателя', d:'Представитель зарубежной компании ищет товар в нашей стране и покупает его здесь. Производитель продаёт «у себя дома», вывозом занимается покупатель.', ex:'Байер китайской сети магазинов приезжает в Карелию и заказывает партию замороженной брусники.'},
+  {tag:'Piggyback', t:'Контрейлерный экспорт', d:'Небольшой производитель продаёт товар через сбытовую сеть крупной компании, которая уже работает за рубежом. Товар «едет на чужом прицепе».', ex:'Крупный кондитер добавляет ягодные соусы «Северной Ягоды» в свои поставки в Китай.'},
+  {tag:'Консорциум', t:'Экспортный кооператив', d:'Несколько производителей объединяются, чтобы вместе собирать партии, нанимать специалистов по ВЭД и делить расходы на выход за рубеж.', ex:'Три карельские фермы и «Северная Ягода» вместе едут на выставку под общим брендом.'}
+];
+const SORT_IND = [
+  {t:'Продаём партию варенья московской экспортной торговой компании. Дальше она сама везёт товар в Казахстан.', a:'indirect', ex:'Посредник находится в нашей стране и становится собственником товара. Экспортирует он, а не мы.'},
+  {t:'Нанимаем агента в Дубае. Он ищет покупателей и получает 7% комиссии с продаж.', a:'direct', ex:'Агент работает в стране рынка, а экспортную сделку ведём мы сами. Это прямой экспорт.'},
+  {t:'Открываем сбытовой филиал в Алматы со своим складом и менеджерами.', a:'direct', ex:'Собственное подразделение в стране рынка — самая «глубокая» форма прямого экспорта.'},
+  {t:'Закупщик сети из ОАЭ приезжает на фабрику и покупает партию. Вывозит он сам.', a:'indirect', ex:'Мы продаём товар внутри страны закупочному офису иностранного покупателя. Экспорт делает покупатель.'},
+  {t:'Ягодные соусы уезжают в Китай вместе с продукцией крупного кондитера, который продаёт их через свою сеть.', a:'indirect', ex:'Это контрейлерный экспорт: используем чужую сбытовую сеть и сами в ВЭД не участвуем.'},
+  {t:'Создаём в компании экспортный отдел, который сам ищет клиентов за рубежом.', a:'direct', ex:'Экспортом занимаемся сами, своими силами. Это прямой экспорт.'},
+  {t:'Подписываем договор с дистрибьютором во Вьетнаме: он выкупает товар и продаёт его местным сетям.', a:'direct', ex:'Дистрибьютор — зарубежный посредник. Мы сами заключаем экспортный контракт и отгружаем товар за границу.'},
+  {t:'Три карельские фермы и мы создаём экспортный консорциум с общим менеджером по ВЭД.', a:'indirect', ex:'Кооператив производителей берёт экспорт на себя: это классическая форма косвенного экспорта.'},
+  {t:'Открываем магазин на зарубежном маркетплейсе и сами отправляем заказы покупателям.', a:'direct', ex:'Продаём конечному покупателю за рубежом без отечественного посредника.'},
+  {t:'Нанимаем экспортную управляющую компанию: она находит клиентов и оформляет таможню за комиссию.', a:'indirect', ex:'ЭУК — отечественный посредник, который ведёт экспорт вместо нас.'},
+  {t:'Наш торговый представитель ездит по выставкам в Азии и заключает контракты от имени компании.', a:'direct', ex:'Разъездные представители — наши сотрудники. Экспорт ведём сами.'}
+];
+
+/* Уровень 3 */
+const FORMS_DIR = [
+  {t:'Собственный экспортный отдел', d:'Подразделение внутри компании само ищет зарубежных клиентов, ведёт переговоры и сделки.'},
+  {t:'Зарубежный сбытовой филиал', d:'Офис продаж в стране рынка: склад, продвижение, работа с сетями. Максимум контроля в экспорте и максимум затрат.'},
+  {t:'Разъездные представители', d:'Сотрудники компании ездят за рубеж на переговоры и выставки.'},
+  {t:'Зарубежный агент', d:'Местный посредник продаёт от имени производителя за комиссию и не выкупает товар.'},
+  {t:'Зарубежный дистрибьютор', d:'Выкупает товар, становится его собственником и перепродаёт по своей цене. Часто получает эксклюзивную территорию.'},
+  {t:'Прямые онлайн-продажи', d:'Свой интернет-магазин или магазин на зарубежном маркетплейсе с доставкой покупателю.'}
+];
+const SORT_AD = [
+  {t:'Не становится собственником товара', a:'agent', ex:'Агент только находит покупателей и заключает сделки от имени производителя.'},
+  {t:'Зарабатывает на разнице между ценой покупки и ценой продажи', a:'dist', ex:'Дистрибьютор выкупает товар и продаёт его со своей наценкой.'},
+  {t:'Получает комиссионное вознаграждение с продаж', a:'agent', ex:'Комиссия — основной доход агента.'},
+  {t:'Сам устанавливает конечную цену на рынке', a:'dist', ex:'Товар принадлежит дистрибьютору, поэтому цену определяет он.'},
+  {t:'Держит склад и товарные запасы в стране рынка', a:'dist', ex:'Дистрибьютор вкладывается в запасы и логистику.'},
+  {t:'Риск неплатежа покупателя обычно остаётся у производителя', a:'agent', ex:'Агент продаёт от имени производителя, поэтому кредитный риск обычно на производителе.'},
+  {t:'Производитель сохраняет больше контроля над ценой и клиентами', a:'agent', ex:'С агентом производитель сам ставит условия сделки и знает своих клиентов.'},
+  {t:'Часто отвечает за сервис и послепродажное обслуживание', a:'dist', ex:'Дистрибьютор полноценно ведёт бизнес с клиентом, включая сервис.'}
+];
+
+/* Уровень 4 */
+const JV_CASES = [
+  {n:'Fuji Xerox', y:'1962–2019', t:'Японская Fuji Photo Film и Rank Xerox создали СП для рынков Азии. Партнёрство длилось почти 60 лет, пока Fujifilm не выкупила долю Xerox.'},
+  {n:'Sony Ericsson', y:'2001–2012', t:'СП 50/50: японская электроника и шведские телеком-технологии. В 2012 году Sony выкупила долю Ericsson.'},
+  {n:'SAIC-GM', y:'с 1997', t:'General Motors вышла на рынок Китая вместе с государственным автопроизводителем SAIC. Долгое время закон требовал местного партнёра в автосборке.'},
+  {n:'Danone и Wahaha', y:'1996–2009', t:'Поучительный конфликт: в 2007 году Danone обвинила партнёра в продаже аналогичной продукции через параллельные компании. Спор завершился выходом Danone из СП.'}
+];
+const NEGO = [
+  {q:'Раунд 1. Как делим капитал СП?', who:'Mekong Fresh: «Мы даём землю, дистрибуцию и связи. Предлагаем подумать о долях».', opts:[
+    {t:'51% у нас, 49% у партнёра', s:'Мажоритарное участие', d:{c:20,t:-10,p:5}, fb:'Контроль за вами. Партнёр немного насторожился: ему важно не чувствовать себя младшим.'},
+    {t:'50 на 50', s:'Равнодолевое СП', d:{c:5,t:15,p:-10}, fb:'Партнёр доволен. Но при равных долях возможен тупик: нужен механизм разрешения споров.'},
+    {t:'30% у нас, 70% у партнёра', s:'Миноритарное участие', d:{c:-20,t:20,p:-5}, fb:'Партнёр в восторге, но стратегию СП теперь определяет он.'}]},
+  {q:'Раунд 2. Что вносим в СП мы?', who:'Mekong Fresh: «Для нас главное — ваши рецептуры и бренд».', opts:[
+    {t:'Передаём рецептуры и бренд в собственность СП', s:'Щедро, но навсегда', d:{c:0,t:15,p:-25}, fb:'Партнёр получил ноу-хау. Если СП распадётся, технологии останутся у него.'},
+    {t:'Даём СП лицензию на бренд и рецептуры с правом отзыва', s:'Лицензионный договор', d:{c:5,t:5,p:20}, fb:'Отличный баланс: СП работает с брендом, а права остаются у вас.'},
+    {t:'Вносим только деньги, технологии не даём', s:'Финансовый вклад', d:{c:-5,t:-15,p:10}, fb:'Партнёр разочарован: он ждал ноу-хау, а не просто инвестора.'}]},
+  {q:'Раунд 3. Кто ведёт маркетинг и продажи во Вьетнаме?', who:'Mekong Fresh: «Мы знаем местные сети и вкусы покупателей».', opts:[
+    {t:'Партнёр: у него знание рынка и связи', s:'Используем сильную сторону партнёра', d:{c:-5,t:15,p:0}, fb:'Именно ради этого и создают СП: местный партнёр знает рынок лучше.'},
+    {t:'Мы сами, по нашим стандартам', s:'Централизованный маркетинг', d:{c:15,t:-10,p:0}, fb:'Контроль выше, но вы рискуете ошибиться с местными вкусами и обидеть партнёра.'},
+    {t:'Нанимаем стороннее агентство', s:'Нейтральный вариант', d:{c:0,t:-5,p:0}, fb:'Безопасно, но СП теряет главное преимущество — знания партнёра.'}]},
+  {q:'Раунд 4. Что пишем в соглашении об управлении и выходе?', who:'Mekong Fresh: «Мы же друзья. Зачем так много бумаг?»', opts:[
+    {t:'Ничего лишнего, договоримся по ходу', s:'Ставка на доверие', d:{c:0,t:10,p:-25}, fb:'Опасно. Конфликт Danone и Wahaha показал, как дорого обходится размытое соглашение.'},
+    {t:'Опцион на выкуп доли, арбитраж и порядок выхода', s:'Защита на случай развода', d:{c:5,t:0,p:25}, fb:'Профессионально: у сторон есть понятный путь выхода и разрешения тупиков.'},
+    {t:'Гендиректор от нас, финдиректор от партнёра, ключевые решения единогласно', s:'Распределённое управление', d:{c:10,t:15,p:5}, fb:'Хороший баланс власти. Но механизма выхода всё ещё нет.'}]}
+];
+const Q_L4 = [
+  {q:'Чем совместное предприятие отличается от неакционерного стратегического альянса?', options:['Партнёры создают общую компанию и вместе владеют её капиталом','СП всегда дешевле альянса','В СП нет совместного управления','СП создают только конкуренты'], answer:0, ex:'Ключевой признак СП — новое юрлицо с общим капиталом, общим управлением и общей прибылью.'},
+  {q:'Какой типичный риск у СП с долями 50 на 50?', options:['Тупик в управлении: решение нельзя принять без согласия другого партнёра','Запрет на получение прибыли','Нельзя нанимать местных сотрудников','Иностранный партнёр освобождается от налогов'], answer:0, ex:'Равные доли дают паритет и уважение, но без механизма разрешения споров решения могут застрять.'},
+  {q:'Почему в некоторых странах компании выходят на рынок именно через СП?', options:['Закон может ограничивать долю иностранного капитала или требовать местного партнёра','Так проще уйти от уплаты налогов','В СП не нужно адаптировать продукт','СП не требует никаких инвестиций'], answer:0, ex:'Так было, например, в китайской автосборке: долгое время иностранцам требовался местный партнёр.'}
+];
+
+/* Уровень 5 */
+const MEM_PAIRS = [
+  {a:'Star Alliance', b:'Авиакомпании объединяют маршруты, стыковки и программы лояльности'},
+  {a:'Starbucks × PepsiCo', b:'Кофейный бренд + сеть дистрибуции напитков в магазинах'},
+  {a:'Renault × Nissan', b:'Перекрёстное владение акциями и общие платформы'},
+  {a:'Spotify × Uber', b:'Своя музыка в поездке: кросс-маркетинг двух сервисов'}
+];
+const Q_L5 = [
+  {q:'Что сохраняют участники стратегического альянса?', options:['Юридическую и хозяйственную самостоятельность','Только общий бренд','Обязанность слиться через 5 лет','Единый совет директоров'], answer:0, ex:'Альянс — союз независимых компаний. Каждая остаётся самостоятельной.'},
+  {q:'Альянс Renault и Nissan с перекрёстным владением акциями — это…', options:['акционерный стратегический альянс','неакционерный (контрактный) альянс','косвенный экспорт','контрейлерный экспорт'], answer:0, ex:'Когда партнёры владеют долями друг друга, альянс называют акционерным.'},
+  {q:'Код-шеринг авиакомпаний внутри Star Alliance — пример…', options:['горизонтального альянса компаний одной отрасли','вертикального альянса поставщика и покупателя','совместного предприятия','прямого экспорта'], answer:0, ex:'Участники работают на одном уровне цепочки ценности и в одной отрасли — это горизонтальный альянс.'}
+];
+
+/* Босс */
+const BOSS = [
+  {co:'Сыроварня «Вологодский двор»', t:'12 сотрудников, никто не знает ВЭД. Хотят попробовать продажи в Казахстане, почти не рискуя деньгами.', best:'indirect', part:'direct', ex:'Без компетенций и бюджета логично начать через отечественного посредника: торговую или управляющую экспортную компанию.'},
+  {co:'Разработчик B2B-софта', t:'Сложный продукт, нужна поддержка клиентов и контроль цены. Есть бюджет на команду в Бразилии, но строить там ничего не нужно.', best:'direct', part:'alliance', ex:'Прямой экспорт через свой сбытовой офис даёт контроль над ценой и сервисом без создания общей компании.'},
+  {co:'Автопроизводитель', t:'Хочет собирать машины в стране, где закон ограничивает долю иностранцев в автосборке и требует местного партнёра.', best:'jv', part:'alliance', ex:'Требование местного партнёра в капитале — классическая причина создать совместное предприятие.'},
+  {co:'Две авиакомпании', t:'Компании из разных регионов хотят продавать стыковочные рейсы и общие мили, оставаясь полностью независимыми.', best:'alliance', part:null, ex:'Код-шеринг и общие программы лояльности — горизонтальный неакционерный альянс, как Star Alliance.'},
+  {co:'Премиальный чай «Иван-да-Марья»', t:'Хотят попасть на полки сетей в ОАЭ. Держать склад и выкупать товар через местного партнёра не готовы, но цену хотят контролировать сами.', best:'direct', part:'indirect', ex:'Подойдёт прямой экспорт через зарубежного агента: он работает за комиссию, а цену определяет производитель.'},
+  {co:'Фармкомпания', t:'Вместе с зарубежной лабораторией разрабатывает новый препарат. Делят затраты на исследования, но создавать новую компанию не хотят.', best:'alliance', part:'jv', ex:'Совместные исследования по договору без нового юрлица — неакционерный технологический альянс.'},
+  {co:'Производитель станков', t:'Нашли в Индии крупного партнёра со связями среди госзаказчиков. Хотят вместе построить завод и разделить инвестиции.', best:'jv', part:'alliance', ex:'Общий завод, общий капитал и связи местного партнёра — это совместное предприятие.'},
+  {co:'Мебельная фабрика «Онего»', t:'Закупочный офис крупной зарубежной сети приехал на фабрику, заказал партию и сам вывезет её за границу.', best:'indirect', part:'direct', ex:'Продажа закупщику иностранного покупателя внутри страны — форма косвенного экспорта: вывоз и ВЭД на покупателе.'}
+];
+
+/* ============ СОСТОЯНИЕ ============ */
+const KEY='cargo-mission-v1';
+let state = {name:'', done:{}, badges:[], teacher:false, screen:'intro'};
+try{ const s=JSON.parse(localStorage.getItem(KEY)||'null'); if(s && s.done) state=Object.assign(state,s); }catch(e){}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+const $ = s=>document.querySelector(s);
+const shuffle = a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const esc = s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const total = ()=>Object.values(state.done).reduce((s,v)=>s+v,0);
+const rankOf = pts=>RANKS.find(r=>pts/MAX_TOTAL>=r.min);
+const unlockedIdx = ()=>{ const i=LEVELS.findIndex(l=>state.done[l.id]==null); return i<0?LEVELS.length:i; };
+function addBadge(b){ if(!state.badges.includes(b)){ state.badges.push(b); runBadges.push(b); save(); } }
+let runBadges=[];
+const BADGE_NAMES={combo5:'Комбо ×5', flawless:'Без единой ошибки', speed:'Скоростная растаможка', memory:'Фотографическая память', diplomat:'Дипломат'};
+
+function hud(){
+  $('#hudXp').textContent = total();
+  $('#hudSt').textContent = Object.keys(state.done).length + '/6';
+}
+function stage(html){ const st=$('#stage'); st.innerHTML='<div class="screen">'+html+'</div>'; window.scrollTo({top:0,behavior:'instant'}); hud(); }
+
+/* ============ ЗВУК ============ */
+let AC=null, muted=false;
+try{ muted = localStorage.getItem(KEY+'-mute')==='1'; }catch(e){}
+function toggleSound(){ muted=!muted; try{localStorage.setItem(KEY+'-mute',muted?'1':'0')}catch(e){} syncSnd(); if(!muted) beep('ok'); }
+function syncSnd(){ const b=$('#sndBtn'); b.textContent='Звук: '+(muted?'выкл':'вкл'); b.setAttribute('aria-pressed',String(!muted)); }
+function beep(type){
+  if(muted) return;
+  try{
+    AC = AC || new (window.AudioContext||window.webkitAudioContext)();
+    const seq={ok:[[660,.07],[990,.12]], bad:[[180,.22]], win:[[523,.1],[659,.1],[784,.1],[1047,.3]], tap:[[880,.04]], stamp:[[120,.12],[90,.18]]}[type]||[[600,.05]];
+    let t=AC.currentTime+.01;
+    seq.forEach(([f,d])=>{ const o=AC.createOscillator(), g=AC.createGain();
+      o.type = type==='bad'?'sawtooth':(type==='stamp'?'square':'triangle'); o.frequency.value=f;
+      g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(type==='bad'?.08:.14,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+d);
+      o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t+d+.03); t+=d; });
+  }catch(e){}
+}
+
+/* ============ КОНФЕТТИ-КОНТЕЙНЕРЫ ============ */
+const RM = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function confetti(){
+  if(RM) return;
+  const c=$('#fx'), x=c.getContext('2d'); const W=c.width=innerWidth, H=c.height=innerHeight;
+  const cols=['#4C8DFF','#FF6B2C','#2FBFA8','#E5486A','#FFD047'];
+  const ps=Array.from({length:110},()=>({x:W/2+(Math.random()-.5)*120,y:H*.35,vx:(Math.random()-.5)*14,vy:-Math.random()*13-4,r:Math.random()*6,vr:(Math.random()-.5)*.3,w:10+Math.random()*10,h:6+Math.random()*4,c:cols[Math.floor(Math.random()*5)]}));
+  let f=0;
+  (function loop(){ x.clearRect(0,0,W,H); ps.forEach(p=>{p.vy+=.35;p.x+=p.vx;p.y+=p.vy;p.vx*=.99;p.r+=p.vr; x.save();x.translate(p.x,p.y);x.rotate(p.r);x.fillStyle=p.c;x.fillRect(-p.w/2,-p.h/2,p.w,p.h);x.fillStyle='rgba(0,0,0,.25)';for(let i=-p.w/2+2;i<p.w/2;i+=3)x.fillRect(i,-p.h/2,1,p.h);x.restore();});
+    if(++f<150) requestAnimationFrame(loop); else x.clearRect(0,0,W,H); })();
+}
+
+/* ============ ТАЙМЕР ============ */
+const T={raf:0,left:0};
+function startTimer(sec,onEnd){ stopTimer(); const t0=performance.now();
+  const tick=now=>{ const bar=$('#tbar'); T.left=Math.max(0,sec-(now-t0)/1000);
+    if(bar){ bar.style.width=(T.left/sec*100)+'%'; bar.classList.toggle('low',T.left<sec*.3); }
+    if(T.left<=0){ T.raf=0; onEnd(); return; } T.raf=requestAnimationFrame(tick); };
+  T.raf=requestAnimationFrame(tick); }
+function stopTimer(){ if(T.raf) cancelAnimationFrame(T.raf); T.raf=0; }
+
+/* ============ НАВИГАЦИЯ ============ */
+function go(screen, step){
+  stopTimer(); S=null; B=null; closeOverlay();
+  const lvIdx = LEVELS.findIndex(l=>l.id===screen);
+  if(lvIdx>-1 && lvIdx>unlockedIdx() && !state.teacher){ screen='hub'; }
+  state.screen=screen; save();
+  ({intro:renderIntro, hub:renderHub, l1:renderL1, l2:renderL2, l3:renderL3, l4:renderL4, l5:renderL5, boss:renderBoss, final:renderFinal}[screen]||renderHub)(step||0);
+}
+function lvHead(id, step, stepNames, desc){
+  const lv=LEVELS.find(l=>l.id===id);
+  return `<div class="lv-head" style="--lc:${lv.color}">
+    <span class="lv-tag"><i></i>Причал ${lv.num}</span>
+    <h1 class="h1">${lv.title}</h1>
+    ${desc?`<p class="lead">${desc}</p>`:''}
+    <div class="steps">${stepNames.map((n,i)=>`<button class="step ${i===step?'on':''}" ${i>step?'disabled':''} onclick="go('${id}',${i})">${i+1} · ${n}</button>`).join('')}</div>
+  </div>`;
+}
+
+/* ============ ИНТРО ============ */
+function renderIntro(){
+  stage(`<section class="intro">
+    <div class="stack" style="gap:22px">
+      <p class="eyebrow">Международный маркетинг · интерактивная миссия</p>
+      <h1 class="h1">Выведите бренд <span>на мировой рынок</span></h1>
+      <p class="lead">Вы — новый директор по международному развитию компании «Северная Ягода» из Петрозаводска. Компания варит варенье, делает ягодные соусы и морозит бруснику. Совет директоров хочет за рубеж, но не знает как.</p>
+      <p class="lead">Пройдите пять причалов, соберите таможенные штампы и защитите стратегию на совете директоров.</p>
+      <div class="legend">
+        <span class="chip" style="--cc:var(--c-ind)"><i></i>Косвенный экспорт</span>
+        <span class="chip" style="--cc:var(--c-dir)"><i></i>Прямой экспорт</span>
+        <span class="chip" style="--cc:var(--c-jv)"><i></i>Совместное предприятие</span>
+        <span class="chip" style="--cc:var(--c-all)"><i></i>Стратегический альянс</span>
+      </div>
+      <div class="name-field">
+        <label for="nm">Как вас записать в судовой журнал?</label>
+        <input id="nm" maxlength="40" placeholder="Имя и фамилия" value="${esc(state.name)}" autocomplete="name">
+      </div>
+      <div class="row">
+        <button class="btn" onclick="startGame()">${Object.keys(state.done).length?'Продолжить рейс →':'Отдать швартовы →'}</button>
+        ${Object.keys(state.done).length?'<button class="btn ghost" onclick="resetAll()">Начать заново</button>':''}
+      </div>
+    </div>
+    <div class="ship-wrap" aria-hidden="true">${shipSvg()}</div>
+  </section>`);
+  const nm=$('#nm'); nm.addEventListener('keydown',e=>{ if(e.key==='Enter') startGame(); });
+}
+function startGame(){ state.name=($('#nm')?.value||'').trim(); save(); beep('tap'); go('hub'); }
+function resetAll(){ const n=state.name; state={name:n,done:{},badges:[],teacher:false,screen:'hub'}; save(); go('hub'); }
+function shipSvg(){
+  const cont=(x,y,c)=>`<g><rect x="${x}" y="${y}" width="64" height="30" rx="2" fill="${c}"/>${Array.from({length:9},(_,i)=>`<rect x="${x+5+i*6.5}" y="${y+3}" width="2" height="24" fill="rgba(0,0,0,.22)"/>`).join('')}</g>`;
+  const waves=(y,o,cls)=>`<path class="wave ${cls}" d="M0 ${y} ${Array.from({length:14},(_,i)=>`q 25 -12 50 0 t 50 0`).join(' ')} V 400 H0Z" fill="rgba(76,141,255,${o})"/>`;
+  return `<svg viewBox="0 0 500 400" preserveAspectRatio="xMidYMid slice">
+    <circle cx="400" cy="80" r="34" fill="#FFD047" opacity=".9"/>
+    <circle cx="390" cy="72" r="34" fill="#0E2440"/>
+    ${[[60,50],[140,90],[250,40],[330,140],[460,180],[30,160]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="1.6" fill="#EAF1F7" opacity=".7"/>`).join('')}
+    <g transform="translate(-200 0)">${waves(300,.18,'w2')}</g>
+    <g class="bob">
+      <rect x="300" y="150" width="56" height="80" rx="4" fill="#EAF1F7"/>
+      <rect x="308" y="160" width="40" height="10" rx="2" fill="#0A1624"/>
+      <rect x="308" y="176" width="40" height="10" rx="2" fill="#0A1624"/>
+      <rect x="320" y="122" width="12" height="30" fill="#FF6B2C"/>
+      ${cont(80,198,'#4C8DFF')}${cont(148,198,'#FF6B2C')}${cont(216,198,'#2FBFA8')}
+      ${cont(114,166,'#E5486A')}${cont(182,166,'#FFD047')}
+      <path d="M40 230 H400 L370 290 H75 Z" fill="#E5486A"/>
+      <path d="M50 250 H392 L384 266 H58 Z" fill="#0A1624" opacity=".35"/>
+      <text x="110" y="284" font-family="JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#0A1624">СЕВЕРНАЯ ЯГОДА</text>
+    </g>
+    <g transform="translate(0 0)">${waves(285,.35,'')}</g>
+    <g transform="translate(-100 0)">${waves(320,.55,'w2')}</g>
+  </svg>`;
+}
+
+/* ============ ХАБ ============ */
+function renderHub(){
+  const unl=unlockedIdx(), pts=total(), rk=rankOf(pts);
+  stage(`<section>
+    <div class="hub-head">
+      <p class="eyebrow">Маршрут рейса СЯ-2026${state.name?' · капитан '+esc(state.name):''}</p>
+      <h1 class="h1">Карта причалов</h1>
+      <p class="lead">Каждый причал — одна стратегия выхода на рынок. Сначала брифинг, потом испытание. За прохождение — таможенный штамп и очки опыта.</p>
+    </div>
+    <ol class="route">${LEVELS.map((lv,i)=>{
+      const done=state.done[lv.id]!=null, open=i<=unl||state.teacher, cur=i===unl&&!done;
+      const cls=done?'done':open?'open':'locked';
+      return `<li class="port ${cls} ${cur?'current':''}" style="--pc:${lv.color}">
+        <button ${open?'':'disabled'} onclick="go('${lv.id}')" aria-label="Причал ${lv.num}: ${lv.title}">
+          <span class="pin">${done?'✓':lv.num}</span>
+          <span class="port-body"><span class="mono port-code">Причал ${lv.num}</span><strong>${lv.title}</strong><span>${lv.sub}</span></span>
+          <span class="port-state mono">${done?state.done[lv.id]+' / '+lv.max+' XP':cur?'Вы здесь →':open?'Открыт':'Закрыт'}</span>
+        </button></li>`; }).join('')}
+    </ol>
+    <div class="hub-foot">
+      <div class="panel stack" style="gap:10px">
+        <p class="eyebrow">Текущее звание</p>
+        <h2 class="h2">${rk.name}</h2>
+        <div class="rankbar"><i style="width:${Math.round(pts/MAX_TOTAL*100)}%"></i></div>
+        <p class="mono" style="font-size:13px;color:var(--muted)">${pts} из ${MAX_TOTAL} XP</p>
+        ${state.done.boss!=null?`<button class="btn" onclick="go('final')">Получить сертификат →</button>`:''}
+      </div>
+      <div class="panel stack" style="gap:12px">
+        <p class="eyebrow">Таможенные штампы</p>
+        <div class="stamps">${LEVELS.map((lv,i)=>stampHtml(lv,state.done[lv.id]==null,i)).join('')}</div>
+        ${state.badges.length?`<div class="badges" style="justify-content:flex-start">${state.badges.map(b=>`<span class="badge">${BADGE_NAMES[b]}</span>`).join('')}</div>`:''}
+      </div>
+    </div>
+    <p style="margin-top:18px"><button class="linkish" onclick="toggleTeacher()">${state.teacher?'Режим преподавателя включён: все причалы открыты. Выключить':'Режим преподавателя: открыть все причалы'}</button></p>
+  </section>`);
+}
+function toggleTeacher(){ state.teacher=!state.teacher; save(); renderHub(); }
+function stampHtml(lv,empty,i){
+  const rot=[-6,4,-3,7,-8,3][i%6];
+  return `<span class="stamp ${empty?'empty':''}" style="--sc:${lv.color};--rot:${rot}deg"><span>Причал ${lv.num}</span><b>${empty?'—':lv.title}</b><span>${empty?'не пройден':'Принято'}</span></span>`;
+}
+
+/* ============ ЗАВЕРШЕНИЕ УРОВНЯ ============ */
+function completeLevel(id, pts){
+  const lv=LEVELS.find(l=>l.id===id); pts=Math.max(0,Math.min(lv.max,Math.round(pts)));
+  const prev=state.done[id]; const first=prev==null;
+  state.done[id]=Math.max(prev||0,pts); save(); hud();
+  beep('stamp'); setTimeout(()=>beep('win'),250); confetti();
+  const idx=LEVELS.indexOf(lv), next=LEVELS[idx+1];
+  const pct=pts/lv.max;
+  const ov=$('#overlay');
+  ov.innerHTML=`<div class="modal" role="dialog" aria-modal="true" aria-label="Причал пройден">
+    <p class="eyebrow">Причал ${lv.num} пройден</p>
+    <span class="stamp big-stamp" style="--sc:${lv.color}"><span>Таможня · рейс СЯ-2026</span><b>${lv.title}</b><span>${new Date().toLocaleDateString('ru-RU')}</span></span>
+    <div class="xp-big">+${pts} XP</div>
+    <p style="color:var(--muted)">${pct>=.9?'Безупречная работа. Совет директоров впечатлён.':pct>=.65?'Хороший результат. Груз доставлен почти без потерь.':'Груз доставлен, но с потерями. Можно перепройти и улучшить счёт.'}${!first&&prev>pts?' Ваш рекорд остался прежним: '+prev+' XP.':''}</p>
+    ${runBadges.length?`<div class="badges">${runBadges.map(b=>`<span class="badge">Награда: ${BADGE_NAMES[b]}</span>`).join('')}</div>`:''}
+    <div class="row" style="justify-content:center">
+      ${id==='boss'?`<button class="btn" onclick="go('final')">Получить сертификат →</button>`:next?`<button class="btn" onclick="go('${next.id}')">Следующий причал →</button>`:''}
+      <button class="btn ghost" onclick="go('hub')">На карту</button>
+    </div></div>`;
+  ov.hidden=false; runBadges=[];
+  ov.querySelector('.btn')?.focus();
+}
+function closeOverlay(){ const o=$('#overlay'); if(o){o.hidden=true;o.innerHTML='';} }
+
+/* ============ ДВИЖОК: КВИЗ ============ */
+let Q=null;
+function runQuiz(qs, onDone, tag){
+  Q={qs:qs.map(q=>({...q, sh:shuffle(q.options.map((t,j)=>({t,ok:j===q.answer})))})), i:0, pts:0, correct:0, onDone, tag:tag||'Вопрос'};
+  renderQ();
+}
+function renderQ(){
+  const q=Q.qs[Q.i];
+  $('#game').innerHTML=`<div class="game-card quiz">
+    <div class="g-top"><span>${Q.tag} ${Q.i+1}/${Q.qs.length}</span><span><em>${Q.pts}</em> XP</span></div>
+    <h3>${q.q}</h3>
+    <div class="opts">${q.sh.map((o,j)=>`<button class="opt" onclick="pickQ(${j})"><span class="k">${'АБВГ'[j]}</span><span>${o.t}</span></button>`).join('')}</div>
+    <div id="fb"></div></div>`;
+}
+function pickQ(j){
+  const q=Q.qs[Q.i], btns=[...document.querySelectorAll('.opt')];
+  btns.forEach((b,k)=>{ b.disabled=true; if(q.sh[k].ok) b.classList.add('right'); });
+  const ok=q.sh[j].ok;
+  if(ok){ Q.pts+=20; Q.correct++; beep('ok'); } else { btns[j].classList.add('wrong'); beep('bad'); }
+  const last=Q.i===Q.qs.length-1;
+  $('#fb').innerHTML=`<div class="fb ${ok?'ok':'no'}"><strong>${ok?'Верно! +20 XP':'Мимо причала'}</strong><p>${q.ex}</p>
+    <button class="btn" onclick="${last?'Q.onDone(Q.pts,Q.correct)':'Q.i++;renderQ()'}">${last?'Завершить →':'Следующий вопрос →'}</button></div>`;
+  $('#fb .btn').focus({preventScroll:true});
+}
+
+/* ============ ДВИЖОК: СОРТИРОВКА ============ */
+let S=null;
+function runSorter(cfg){
+  S={...cfg, items:shuffle(cfg.items.slice()), i:0, pts:0, correct:0, combo:0, best:0, locked:false, fast:0};
+  renderSort();
+}
+function renderSort(){
+  const it=S.items[S.i];
+  $('#game').innerHTML=`<div class="game-card">
+    <div class="g-top"><span>${S.unit} ${S.i+1}/${S.items.length}</span><span class="combo ${S.combo>=3?'hot':''}">Комбо ×${S.combo}</span><span><em>${S.pts}</em> XP</span></div>
+    <div class="timer"><i id="tbar"></i></div>
+    <div class="cargo" id="cargo"><span class="ctag">${S.tag} №${String(S.i+1).padStart(3,'0')}</span><p>${it.t}</p></div>
+    <div class="gates">
+      <button class="gate" style="--gc:${S.L.cc}" onclick="sortPick('${S.L.k}')">← ${S.L.label}<small>клавиша ←</small></button>
+      <button class="gate" style="--gc:${S.R.cc}" onclick="sortPick('${S.R.k}')">${S.R.label} →<small>клавиша →</small></button>
+    </div>
+    <div id="fb"></div></div>`;
+  S.locked=false; S.t0=performance.now();
+  startTimer(S.time, ()=>sortPick(null));
+}
+function sortPick(k){
+  if(!S||S.locked) return; S.locked=true; stopTimer();
+  const it=S.items[S.i], ok=k===it.a, cargo=$('#cargo');
+  document.querySelectorAll('.gate').forEach(b=>b.disabled=true);
+  const secs=(performance.now()-S.t0)/1000;
+  let gain=0;
+  if(ok){ S.combo++; S.best=Math.max(S.best,S.combo); S.correct++; gain=10+(S.combo>=3?5:0); S.pts+=gain; if(secs<4) S.fast++; beep('ok');
+    cargo.classList.add(k===S.L.k?'fly-l':'fly-r'); if(S.combo>=5) addBadge('combo5'); }
+  else { S.combo=0; beep('bad'); cargo.classList.add('shake'); }
+  const right = it.a===S.L.k?S.L.label:S.R.label;
+  const last=S.i===S.items.length-1;
+  $('#fb').innerHTML=`<div class="fb ${ok?'ok':'no'}"><strong>${ok?`Верно! +${gain} XP${gain>10?' (комбо)':''}`:k===null?'Время вышло. Правильно: '+right:'Не тот терминал. Правильно: '+right}</strong><p>${it.ex}</p>
+    <button class="btn" id="nextBtn" onclick="sortNext()">${last?'Подвести итог →':'Следующий груз →'}</button></div>`;
+  $('#nextBtn').focus({preventScroll:true});
+  // плавно прокрутить к пояснению на телефоне
+  $('#fb').scrollIntoView({block:'nearest',behavior:RM?'auto':'smooth'});
+}
+function sortNext(){ if(!S) return; if(S.i<S.items.length-1){ S.i++; renderSort(); } else { const s=S; if(s.correct===s.items.length) addBadge('flawless'); if(s.fast>=Math.ceil(s.items.length*.6)) addBadge('speed'); S=null; s.onDone(s.pts,s.correct,s.items.length); } }
+document.addEventListener('keydown',e=>{
+  if(S && !S.locked){ if(e.key==='ArrowLeft'){e.preventDefault();sortPick(S.L.k);} if(e.key==='ArrowRight'){e.preventDefault();sortPick(S.R.k);} }
+  if(e.key==='Escape' && !$('#overlay').hidden) go('hub');
+});
+
+/* ============ УРОВЕНЬ 1 ============ */
+let ladderSel=0;
+function renderL1(step){
+  const names=['Брифинг','Головоломка','Проверка'];
+  if(step===0){
+    stage(lvHead('l1',0,names,'Все стратегии выхода на зарубежный рынок можно выстроить в лестницу: чем выше ступень, тем больше вложений, контроля и риска. Переключайте ступени и смотрите, что меняется.')+`
+      <div class="stack">
+        <div class="ladder-tabs" role="tablist">${LADDER.map((s,i)=>`<button role="tab" class="ltab ${i===ladderSel?'on':''}" style="--cc:${ST[s.k].cc}" aria-selected="${i===ladderSel}" onclick="ladderSel=${i};renderL1(0)"><div class="cont"></div><span>${i+1}. ${ST[s.k].name}</span></button>`).join('')}</div>
+        <div class="grid2">
+          <div class="panel stack" style="--cc:${ST[LADDER[ladderSel].k].cc}">
+            <div class="stairs" aria-hidden="true">${LADDER.map((s,i)=>`<div class="${i===ladderSel?'on':''}" style="--cc:${ST[s.k].cc};height:${25+i*22}%"></div>`).join('')}<div style="--cc:var(--c-fdi);height:95%"></div></div>
+            <p class="mono" style="font-size:11px;color:var(--muted)">Последний серый столбик — прямые инвестиции (свой завод). Это следующий курс.</p>
+            <div class="bars">${LADDER_PARAMS.map((p,j)=>`<div class="bar"><span>${p}</span><div class="track"><div class="fill" style="width:${LADDER[ladderSel].vals[j]*20}%"></div></div><b>${LADDER[ladderSel].vals[j]}/5</b></div>`).join('')}</div>
+          </div>
+          <div class="panel stack">
+            <h2 class="h2" style="color:${ST[LADDER[ladderSel].k].cc}">${ST[LADDER[ladderSel].k].name}</h2>
+            <p>${LADDER[ladderSel].d}</p>
+            <div class="grid2" style="gap:10px">
+              <ul class="clean plus">${LADDER[ladderSel].plus.map(x=>`<li>${x}</li>`).join('')}</ul>
+              <ul class="clean minus">${LADDER[ladderSel].minus.map(x=>`<li>${x}</li>`).join('')}</ul>
+            </div>
+            <p class="note"><b>Для «Северной Ягоды»:</b> ${LADDER[ladderSel].ex}</p>
+          </div>
+        </div>
+        <p class="note"><b>Заметьте:</b> в альянсе контроль над маркетингом может быть даже ниже, чем при прямом экспорте, потому что решения приходится согласовывать с партнёром.</p>
+        <div class="row"><button class="btn" onclick="go('l1',1)">К головоломке →</button></div>
+      </div>`);
+  } else if(step===1){
+    stage(lvHead('l1',1,names,'Погрузите контейнеры на лестницу: нажимайте на стратегии по порядку, от минимальной вовлечённости к максимальной.')+`<div id="game"></div>`);
+    P={pool:shuffle(ORDER.slice()), placed:[], miss:0}; renderPuzzle();
+  } else {
+    stage(lvHead('l1',2,names,'Два быстрых вопроса, и штамп ваш.')+`<div id="game"></div>`);
+    runQuiz(Q_L1,(pts)=>completeLevel('l1',(P?P.score:30)+pts));
+  }
+}
+let P=null;
+function renderPuzzle(){
+  $('#game').innerHTML=`<div class="game-card">
+    <div class="g-top"><span>Ошибок: ${P.miss}</span><span>Погружено ${P.placed.length}/5</span></div>
+    <div class="slots">${ORDER.map((k,i)=>{ const pk=P.placed[i]; return `<div class="slot ${pk?'filled':''}" style="--cc:${pk?ST[pk].cc:'var(--line)'}"><b>${i+1}</b>${pk?ORDER_LABEL[pk]:(i===0?'Минимум вложений и риска':i===4?'Максимум вложений и контроля':'…')}</div>`;}).join('')}</div>
+    <div class="pool">${P.pool.map(k=>`<button class="pchip" id="pc-${k}" style="--cc:${ST[k].cc}" onclick="placeChip('${k}')"><i></i>${ORDER_LABEL[k]}</button>`).join('')}</div>
+    <div id="fb"></div></div>`;
+}
+function placeChip(k){
+  const need=ORDER[P.placed.length];
+  if(k===need){ P.placed.push(k); P.pool=P.pool.filter(x=>x!==k); beep('ok'); renderPuzzle();
+    if(P.placed.length===5){ P.score=Math.max(20,60-P.miss*10); if(P.miss===0) addBadge('flawless');
+      $('#fb').innerHTML=`<div class="fb ${P.miss?'mid':'ok'}"><strong>Лестница собрана! +${P.score} XP</strong><p>Косвенный экспорт → прямой экспорт → стратегический альянс → совместное предприятие → прямые инвестиции. С каждой ступенью компания вкладывает больше, рискует больше и больше узнаёт о рынке.</p><button class="btn" onclick="go('l1',2)">К проверке →</button></div>`; }
+  } else { P.miss++; beep('bad'); const b=$('#pc-'+k); b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake');
+    document.querySelector('.g-top span').textContent='Ошибок: '+P.miss; }
+}
+
+/* ============ УРОВЕНЬ 2 ============ */
+const flipped=new Set();
+function renderL2(step){
+  const names=['Брифинг','Сортировочный терминал'];
+  if(step===0){
+    stage(lvHead('l2',0,names,'Компания продаёт товар отечественному посреднику, а тот уже сам выводит его за рубеж. Переверните карточки посредников: нажмите на каждую.')+`
+      <div class="stack">
+        <div class="flips">${CARDS_IND.map((c,i)=>`<button class="flip ${flipped.has('i'+i)?'on':''}" style="--cc:var(--c-ind)" onclick="flipCard(this,'i${i}')" aria-label="${c.t}">
+          <div class="flip-in"><div class="face front"><div class="crate">${c.tag}</div><strong>${c.t}</strong><small>Нажмите, чтобы перевернуть</small></div>
+          <div class="face back"><p>${c.d}</p><p class="ex"><b>ПРИМЕР</b>${c.ex}</p></div></div></button>`).join('')}</div>
+        <p class="mono" id="flipCount" style="font-size:13px;color:var(--muted)">${countFlips('i',5)}</p>
+        <div class="grid2">
+          <div class="panel"><h3 style="color:var(--good)">Плюсы</h3><ul class="clean plus"><li>Минимум инвестиций и риска</li><li>Не нужен свой отдел ВЭД, таможня и валютный контроль на посреднике</li><li>Быстрый пробный выход на рынок</li></ul></div>
+          <div class="panel"><h3 style="color:var(--bad)">Минусы</h3><ul class="clean minus"><li>Слабый контроль над ценой, позиционированием и брендом</li><li>Посредник забирает часть маржи</li><li>Компания не получает знаний о зарубежном покупателе</li></ul></div>
+        </div>
+        <p class="note"><b>Правило таможенника.</b> Если экспортную сделку ведёт отечественный посредник — экспорт косвенный. Если компания сама заключает контракт с зарубежной стороной, пусть даже с иностранным агентом или дистрибьютором, — экспорт прямой.</p>
+        <div class="row"><button class="btn" onclick="go('l2',1)">На терминал →</button></div>
+      </div>`);
+  } else {
+    stage(lvHead('l2',1,names,'Грузы прибывают один за другим. Отправьте каждый в нужный терминал: косвенный или прямой экспорт. 12 секунд на решение, три верных подряд дают комбо.')+`<div id="game"></div>`);
+    runSorter({items:SORT_IND, time:12, unit:'Груз', tag:'ГРУЗ', L:{k:'indirect',label:'Косвенный',cc:'var(--c-ind)'}, R:{k:'direct',label:'Прямой',cc:'var(--c-dir)'},
+      onDone:(pts)=>completeLevel('l2',pts)});
+  }
+}
+function flipCard(el,id){ el.classList.toggle('on'); if(!flipped.has(id)){ flipped.add(id); beep('tap'); } const fc=$('#flipCount'); if(fc) fc.textContent=countFlips(id[0], id[0]==='i'?5:6); }
+function countFlips(p,n){ const c=[...flipped].filter(x=>x[0]===p).length; return c>=n?'Все карточки изучены. Можно идти на терминал.':'Изучено карточек: '+c+' из '+n; }
+
+/* ============ УРОВЕНЬ 3 ============ */
+function renderL3(step){
+  const names=['Брифинг','Агент или дистрибьютор?'];
+  if(step===0){
+    stage(lvHead('l3',0,names,'Компания сама ведёт экспорт: ищет зарубежных покупателей, заключает контракты, выбирает базис поставки по Инкотермс и проходит таможню. Посредники, если они есть, находятся уже в стране рынка.')+`
+      <div class="stack">
+        <div class="flips">${FORMS_DIR.map((c,i)=>`<button class="flip ${flipped.has('d'+i)?'on':''}" style="--cc:var(--c-dir);min-height:200px" onclick="flipCard(this,'d${i}')" aria-label="${c.t}">
+          <div class="flip-in" style="min-height:200px"><div class="face front"><div class="crate">ФОРМА ${i+1}</div><strong>${c.t}</strong><small>Нажмите, чтобы перевернуть</small></div>
+          <div class="face back"><p>${c.d}</p></div></div></button>`).join('')}</div>
+        <p class="mono" id="flipCount" style="font-size:13px;color:var(--muted)">${countFlips('d',6)}</p>
+        <h2 class="h2">Главная развилка: агент или дистрибьютор</h2>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Признак</th><th style="color:var(--c-dir)">Агент</th><th style="color:var(--c-dir)">Дистрибьютор</th></tr></thead>
+          <tbody>
+            <tr><td>Право собственности на товар</td><td>Нет</td><td>Да, выкупает товар</td></tr>
+            <tr><td>Доход</td><td>Комиссия с продаж</td><td>Наценка при перепродаже</td></tr>
+            <tr><td>Кто устанавливает цену</td><td>Производитель</td><td>Дистрибьютор</td></tr>
+            <tr><td>Склад и запасы</td><td>Обычно нет</td><td>Да</td></tr>
+            <tr><td>Риск неплатежа клиента</td><td>Обычно у производителя</td><td>У дистрибьютора</td></tr>
+            <tr><td>Контроль производителя</td><td>Выше</td><td>Ниже</td></tr>
+          </tbody></table></div>
+        <div class="grid2">
+          <div class="panel"><h3 style="color:var(--good)">Плюсы прямого экспорта</h3><ul class="clean plus"><li>Больше контроля над ценой, брендом и каналами</li><li>Маржа не уходит отечественному посреднику</li><li>Компания учится понимать зарубежного покупателя</li></ul></div>
+          <div class="panel"><h3 style="color:var(--bad)">Минусы</h3><ul class="clean minus"><li>Нужны специалисты по ВЭД, Инкотермс и валютному контролю</li><li>Выше затраты на поиск партнёров и продвижение</li><li>Коммерческий риск выше, чем при косвенном экспорте</li></ul></div>
+        </div>
+        <div class="row"><button class="btn" onclick="go('l3',1)">К испытанию →</button></div>
+      </div>`);
+  } else {
+    stage(lvHead('l3',1,names,'«Северная Ягода» выбирает партнёра в ОАЭ. Определите, о ком каждое утверждение: об агенте или о дистрибьюторе. 9 секунд на ответ.')+`<div id="game"></div>`);
+    runSorter({items:SORT_AD, time:9, unit:'Утверждение', tag:'ДОСЬЕ', L:{k:'agent',label:'Агент',cc:'var(--c-dir)'}, R:{k:'dist',label:'Дистрибьютор',cc:'var(--signal)'},
+      onDone:(pts)=>completeLevel('l3',Math.min(80,pts))});
+  }
+}
+
+/* ============ УРОВЕНЬ 4 ============ */
+let N=null;
+function renderL4(step){
+  const names=['Брифинг','Переговоры','Проверка'];
+  if(step===0){
+    stage(lvHead('l4',0,names,'Иностранная компания и местный партнёр создают новую компанию: вместе вкладывают капитал, вместе управляют и делят прибыль.')+`
+      <div class="stack">
+        <div class="grid3">
+          <div class="panel" style="border-top:4px solid var(--c-jv)"><p class="eyebrow">Мажоритарное</p><h3>Доля больше 50%</h3><p style="color:var(--muted);font-size:14px">Больше контроля у иностранного партнёра, но местный может почувствовать себя младшим.</p></div>
+          <div class="panel" style="border-top:4px solid var(--c-jv)"><p class="eyebrow">Равнодолевое</p><h3>50 на 50</h3><p style="color:var(--muted);font-size:14px">Паритет и доверие, но высокий риск тупика в решениях.</p></div>
+          <div class="panel" style="border-top:4px solid var(--c-jv)"><p class="eyebrow">Миноритарное</p><h3>Доля меньше 50%</h3><p style="color:var(--muted);font-size:14px">Меньше вложений и меньше влияния. Иногда это единственный вариант по закону страны.</p></div>
+        </div>
+        <div class="grid2">
+          <div class="panel"><h3 style="color:var(--good)">Зачем идти в СП</h3><ul class="clean plus"><li>Знание рынка, связи и каналы сбыта местного партнёра</li><li>Делим инвестиции и риски</li><li>Обходим ограничения на долю иностранного капитала</li><li>Проще получить лицензии и доверие властей</li></ul></div>
+          <div class="panel"><h3 style="color:var(--bad)">Чем рискуем</h3><ul class="clean minus"><li>Разные цели партнёров: дивиденды против реинвестиций</li><li>Тупики в управлении</li><li>Утечка технологий и ноу-хау</li><li>Сложный и дорогой «развод»</li></ul></div>
+        </div>
+        <h2 class="h2">Досье: реальные СП</h2>
+        <div class="grid2">${JV_CASES.map(c=>`<div class="panel stack" style="gap:6px"><p class="mono" style="font-size:12px;color:var(--c-jv)">${c.y}</p><h3 style="margin:0">${c.n}</h3><p style="font-size:15px;color:#C7D5E3">${c.t}</p></div>`).join('')}</div>
+        <p class="note"><b>Важно для экзамена.</b> У Ф. Котлера «совместная предпринимательская деятельность» шире: в неё входят лицензирование, контрактное производство, управление по контракту и совместное владение. В этой игре СП — это именно совместное владение.</p>
+        <div class="row"><button class="btn" onclick="go('l4',1)">За стол переговоров →</button></div>
+      </div>`);
+  } else if(step===1){
+    stage(lvHead('l4',1,names,'«Северная Ягода» создаёт с вьетнамской компанией Mekong Fresh завод ягодных десертов. Четыре раунда переговоров. Следите за тремя шкалами: идеального ответа нет, есть баланс.')+`<div id="game"></div>`);
+    N={r:0, m:{c:50,t:50,p:50}, last:null}; renderNego();
+  } else {
+    stage(lvHead('l4',2,names,'Три вопроса о совместных предприятиях.')+`<div id="game"></div>`);
+    runQuiz(Q_L4,(pts)=>completeLevel('l4',(N?N.score:50)+pts));
+  }
+}
+const MNAME={c:'Наш контроль',t:'Доверие партнёра',p:'Защита интересов'};
+function meterHtml(d){
+  return `<div class="meters">${['c','t','p'].map(k=>{ const v=N.m[k]; const col=v<30?'var(--bad)':v<55?'var(--signal)':'var(--good)';
+    const dd=d&&d[k]?`<span class="delta ${d[k]>0?'up':'dn'}">${d[k]>0?'+':''}${d[k]}</span>`:'';
+    return `<div class="meter"><span>${MNAME[k]} ${dd}<b>${v}</b></span><div class="track"><div class="fill" style="width:${v}%;background:${col}"></div></div></div>`;}).join('')}</div>`;
+}
+function renderNego(d){
+  const R=NEGO[N.r];
+  $('#game').innerHTML=`<div class="game-card">
+    <div class="g-top"><span>Раунд ${N.r+1}/4</span><span>Mekong Fresh · Хошимин</span></div>
+    ${meterHtml(d)}
+    <div class="partner"><div class="avatar">MF</div><div class="bubble">${R.who.replace('Mekong Fresh: ','')}</div></div>
+    <h3 style="font-family:var(--f-body);font-size:19px">${R.q}</h3>
+    <div class="choices">${R.opts.map((o,i)=>`<button class="choice" onclick="pickNego(${i})"><b>${o.t}</b><small>${o.s}</small></button>`).join('')}</div>
+    <div id="fb"></div></div>`;
+}
+function pickNego(i){
+  const o=NEGO[N.r].opts[i];
+  Object.keys(o.d).forEach(k=>N.m[k]=Math.max(0,Math.min(100,N.m[k]+o.d[k])));
+  const good=Object.values(o.d).reduce((a,b)=>a+b,0)>=15; beep(good?'ok':'tap');
+  const last=N.r===NEGO.length-1;
+  // перерисовать шкалы с дельтами
+  document.querySelector('.meters').outerHTML=meterHtml(o.d);
+  document.querySelectorAll('.choice').forEach((b,k)=>{b.disabled=true; if(k===i) b.classList.add('picked');});
+  $('#fb').innerHTML=`<div class="fb ${good?'ok':Object.values(o.d).some(v=>v<=-20)?'no':'mid'}"><strong>${o.s}</strong><p>${o.fb}</p>
+    <button class="btn" onclick="${last?'finishNego()':'N.r++;renderNego()'}">${last?'Подписать соглашение →':'Следующий раунд →'}</button></div>`;
+  $('#fb .btn').focus({preventScroll:true});
+}
+function finishNego(){
+  const {c,t,p}=N.m, mn=Math.min(c,t,p), avg=(c+t+p)/3;
+  N.score=Math.round(Math.min(100, avg*1.15 + (mn>=50?15:0)));
+  if(mn>=55) addBadge('diplomat');
+  const out = mn<30?{cls:'no',h:'Хрупкое СП: конфликт на горизонте',p:'Одна из шкал провалилась. Так начинались многие громкие «разводы» партнёров, вроде истории Danone и Wahaha. Перепройдите переговоры и ищите баланс.'}
+    : mn<50?{cls:'mid',h:'Рабочее СП с уязвимостями',p:'Предприятие запущено, но в одном из направлений вы уступили слишком много. Подумайте, что вы бы изменили.'}
+    : {cls:'ok',h:'Сбалансированное СП',p:'Контроль, доверие и защита в равновесии. Так выглядят долгоживущие СП вроде Fuji Xerox.'};
+  $('#game').innerHTML=`<div class="game-card">
+    <div class="g-top"><span>Итог переговоров</span><span><em>${N.score}</em> XP</span></div>
+    ${meterHtml()}
+    <div class="fb ${out.cls}"><strong>${out.h}</strong><p>${out.p}</p>
+    <div class="row"><button class="btn" onclick="go('l4',2)">К проверке →</button><button class="btn ghost" onclick="go('l4',1)">Переиграть переговоры</button></div></div></div>`;
+  beep(out.cls==='ok'?'win':'tap');
+}
+
+/* ============ УРОВЕНЬ 5 ============ */
+let M=null;
+function renderL5(step){
+  const names=['Брифинг','Найди пару','Проверка'];
+  if(step===0){
+    stage(lvHead('l5',0,names,'Договор о сотрудничестве двух и более независимых компаний ради общей цели. Каждая остаётся самостоятельной, новая компания не обязательна.')+`
+      <div class="stack">
+        <div class="grid3">
+          <div class="panel"><p class="eyebrow">По участию в капитале</p><ul class="clean" style="--dot:var(--c-all)"><li><span><b>Неакционерный</b> — только договор: совместный маркетинг, R&amp;D, код-шеринг</span></li><li><span><b>Акционерный</b> — партнёры покупают доли друг друга, иногда перекрёстно</span></li></ul></div>
+          <div class="panel"><p class="eyebrow">По направлению</p><ul class="clean" style="--dot:var(--c-all)"><li><span><b>Горизонтальный</b> — компании одной отрасли, часто конкуренты</span></li><li><span><b>Вертикальный</b> — звенья одной цепочки: поставщик и производитель</span></li></ul></div>
+          <div class="panel"><p class="eyebrow">По функции</p><ul class="clean" style="--dot:var(--c-all)"><li>Маркетинговый и кобрендинг</li><li>Технологический (R&amp;D)</li><li>Производственный</li><li>Логистический и сбытовой</li></ul></div>
+        </div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Признак</th><th style="color:var(--c-all)">Стратегический альянс</th><th style="color:var(--c-jv)">Совместное предприятие</th></tr></thead>
+          <tbody>
+            <tr><td>Новое юрлицо</td><td>Не обязательно</td><td>Да</td></tr>
+            <tr><td>Общий капитал</td><td>Не обязательно</td><td>Да</td></tr>
+            <tr><td>Самостоятельность сторон</td><td>Полная</td><td>Сохраняется, но СП управляют вместе</td></tr>
+            <tr><td>Гибкость и выход</td><td>Проще начать и проще выйти</td><td>Выход сложный и дорогой</td></tr>
+            <tr><td>Контроль</td><td>Ограничен договором</td><td>Пропорционален доле</td></tr>
+          </tbody></table></div>
+        <p class="note"><b>Спорный момент.</b> Многие авторы считают СП разновидностью акционерного альянса. Если преподаватель спросит, ответьте так: всякое СП — форма союза компаний, но не всякий альянс — СП.</p>
+        <div class="row"><button class="btn" onclick="go('l5',1)">К игре «Найди пару» →</button></div>
+      </div>`);
+  } else if(step===1){
+    stage(lvHead('l5',1,names,'Под контейнерами спрятаны четыре реальных альянса и их суть. Откройте два контейнера: если альянс и его описание совпали, пара остаётся открытой.')+`<div id="game"></div>`);
+    const cards=[]; MEM_PAIRS.forEach((p,i)=>{ cards.push({id:i,txt:p.a,name:true}); cards.push({id:i,txt:p.b,name:false}); });
+    M={cards:shuffle(cards), open:[], matched:new Set(), moves:0, busy:false}; renderMem();
+  } else {
+    stage(lvHead('l5',2,names,'Три вопроса об альянсах.')+`<div id="game"></div>`);
+    runQuiz(Q_L5,(pts)=>completeLevel('l5',(M?M.score:50)+pts));
+  }
+}
+function renderMem(){
+  $('#game').innerHTML=`<div class="game-card">
+    <div class="g-top"><span>Ходов: ${M.moves}</span><span>Найдено пар: ${M.matched.size}/4</span></div>
+    <div class="mem">${M.cards.map((c,i)=>{ const on=M.open.includes(i), mt=M.matched.has(c.id);
+      return `<button class="mcard ${on?'on':''} ${mt?'matched':''}" onclick="memPick(${i})" ${mt?'disabled':''} aria-label="${on||mt?esc(c.txt):'Закрытый контейнер'}">
+        <div class="flip-in"><div class="face front"><span>?</span></div><div class="face back ${c.name?'name':''}">${c.txt}</div></div></button>`;}).join('')}</div>
+    <div id="fb"></div></div>`;
+}
+function memPick(i){
+  if(M.busy||M.open.includes(i)||M.matched.has(M.cards[i].id)) return;
+  M.open.push(i); beep('tap');
+  document.querySelectorAll('.mcard')[i].classList.add('on');
+  if(M.open.length===2){
+    M.moves++; M.busy=true; const [a,b]=M.open.map(k=>M.cards[k]);
+    if(a.id===b.id && a.name!==b.name){ M.matched.add(a.id); M.open=[]; M.busy=false; beep('ok');
+      setTimeout(()=>{ renderMem(); if(M.matched.size===4) memDone(); },350);
+    } else { setTimeout(()=>{ M.open=[]; M.busy=false; renderMem(); },1000); }
+    document.querySelector('.g-top span').textContent='Ходов: '+M.moves;
+  }
+}
+function memDone(){
+  M.score=Math.max(40,100-(M.moves-4)*8); if(M.moves<=6) addBadge('memory'); beep('win');
+  $('#fb').innerHTML=`<div class="fb ok"><strong>Все альянсы найдены за ${M.moves} ходов. +${M.score} XP</strong>
+    <p>Star Alliance (с 1997 года) — горизонтальный неакционерный альянс авиакомпаний. Starbucks и PepsiCo с 1994 года вместе продают готовый кофе в бутылках: бренд одного, дистрибуция другого. Renault и Nissan с 1999 года связаны перекрёстным владением акциями — это акционерный альянс. Spotify и Uber в 2014 году запустили кросс-маркетинговый проект: пассажир включал свою музыку в машине.</p>
+    <button class="btn" onclick="go('l5',2)">К проверке →</button></div>`;
+}
+
+/* ============ БОСС ============ */
+let B=null;
+function renderBoss(){
+  stage(lvHead('boss',0,['Заседание'],'Совет директоров приносит восемь кейсов от разных компаний. Для каждого выберите лучшую стратегию выхода на рынок. 35 секунд на кейс, три контейнера жизни. Почти правильный ответ даёт часть очков и не отнимает жизнь.')+`<div id="game"></div>`);
+  B={cases:shuffle(BOSS.slice()), i:0, pts:0, lives:3, right:0, over:false};
+  bossCase();
+}
+function bossCase(){
+  const c=B.cases[B.i];
+  B.opts=shuffle(['indirect','direct','alliance','jv']); B.locked=false;
+  $('#game').innerHTML=`<div class="game-card quiz">
+    <div class="g-top"><span>Кейс ${B.i+1}/${B.cases.length}</span><span class="lives">${[0,1,2].map(k=>`<i class="${k<B.lives?'':'lost'}" title="Жизнь"></i>`).join('')}</span><span><em>${B.pts}</em> XP</span></div>
+    <div class="timer"><i id="tbar"></i></div>
+    <p class="case-co">${c.co}</p>
+    <h3>${c.t}</h3>
+    <div class="opts">${B.opts.map((k,j)=>`<button class="opt" style="--cc:${ST[k].cc}" onclick="bossPick(${j})"><span class="sw"></span><span>${ST[k].name}</span></button>`).join('')}</div>
+    <div id="fb"></div></div>`;
+  startTimer(35,()=>bossPick(-1));
+}
+function bossPick(j){
+  if(!B||B.locked) return; B.locked=true; const left=T.left; stopTimer();
+  const c=B.cases[B.i], k=j>=0?B.opts[j]:null, btns=[...document.querySelectorAll('.opt')];
+  btns.forEach((b,n)=>{ b.disabled=true; if(B.opts[n]===c.best) b.classList.add('right'); });
+  let cls, head, gain=0;
+  if(k===c.best){ gain=20+Math.ceil(left/35*10); B.right++; cls='ok'; head=`Совет аплодирует! +${gain} XP`; beep('ok'); }
+  else if(k && k===c.part){ gain=8; cls='mid'; head='Неплохо, но есть вариант точнее. +8 XP'; btns[j].classList.add('part'); beep('tap'); }
+  else { B.lives--; cls='no'; head=k?'Совет недоволен. Минус контейнер':'Время вышло. Минус контейнер'; if(j>=0) btns[j].classList.add('wrong'); beep('bad'); }
+  B.pts+=gain;
+  document.querySelector('.lives').innerHTML=[0,1,2].map(n=>`<i class="${n<B.lives?'':'lost'}"></i>`).join('');
+  const end = B.lives<=0 || B.i===B.cases.length-1;
+  $('#fb').innerHTML=`<div class="fb ${cls}"><strong>${head}</strong><p><b>Лучший выбор: ${ST[c.best].name}.</b> ${c.ex}</p>
+    <button class="btn" onclick="${end?'bossEnd()':'B.i++;bossCase()'}">${end?(B.lives<=0?'Заседание окончено →':'Итоги заседания →'):'Следующий кейс →'}</button></div>`;
+  $('#fb .btn').focus({preventScroll:true});
+  $('#fb').scrollIntoView({block:'nearest',behavior:RM?'auto':'smooth'});
+}
+function bossEnd(){
+  const b=B; B=null;
+  if(b.right===b.cases.length) addBadge('flawless');
+  if(b.lives<=0){
+    $('#game').innerHTML=`<div class="game-card"><div class="fb no"><strong>Совет директоров прервал заседание</strong>
+      <p>Вы потеряли все контейнеры на кейсе ${b.i+1} из ${b.cases.length}. Набрано ${b.pts} XP. Можно сдать результат как есть или попробовать снова: кейсы перемешаются.</p>
+      <div class="row"><button class="btn" onclick="renderBoss()">Попробовать снова</button><button class="btn ghost" onclick="completeLevel('boss',${b.pts})">Сдать с результатом ${b.pts} XP</button></div></div></div>`;
+    return;
+  }
+  completeLevel('boss',b.pts);
+}
+
+/* ============ ФИНАЛ ============ */
+function renderFinal(){
+  const pts=total(), rk=rankOf(pts);
+  const weak=LEVELS.filter(l=>state.done[l.id]!=null && state.done[l.id]/l.max<.65);
+  const num='СЯ-2026-'+String(1000+((pts*37+ (state.name||'x').length*101)%9000));
+  stage(`<section class="stack" style="gap:22px">
+    <div class="stack" style="gap:8px"><p class="eyebrow">Рейс завершён</p><h1 class="h1">Груз доставлен</h1></div>
+    <div class="cert"><div class="cert-in">
+      <p class="eyebrow">Коносамент № ${num} · сертификат о прохождении</p>
+      <h2>Классификация стратегий выхода на зарубежный рынок</h2>
+      <dl>
+        <dt>Капитан</dt><dd>${esc(state.name)||'Директор по международному развитию'}</dd>
+        <dt>Компания</dt><dd>«Северная Ягода», Петрозаводск</dd>
+        <dt>Груз</dt><dd>Косвенный и прямой экспорт, совместные предприятия, стратегические альянсы</dd>
+        <dt>Набрано</dt><dd>${pts} из ${MAX_TOTAL} XP (${Math.round(pts/MAX_TOTAL*100)}%)</dd>
+        <dt>Дата</dt><dd>${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'})}</dd>
+      </dl>
+      <div><p class="eyebrow">Присвоено звание</p><p class="rank">${rk.name}</p><p>${rk.txt}</p></div>
+      <div class="stamps">${LEVELS.map((lv,i)=>stampHtml(lv,state.done[lv.id]==null,i)).join('')}</div>
+    </div></div>
+    ${state.badges.length?`<div class="panel stack" style="gap:10px"><p class="eyebrow">Особые награды</p><div class="badges" style="justify-content:flex-start">${state.badges.map(b=>`<span class="badge">${BADGE_NAMES[b]}</span>`).join('')}</div></div>`:''}
+    ${weak.length?`<div class="panel stack" style="gap:10px"><p class="eyebrow">Стоит повторить</p><div class="row">${weak.map(l=>`<button class="btn ghost" onclick="go('${l.id}')">${l.title} · ${state.done[l.id]}/${l.max}</button>`).join('')}</div></div>`:''}
+    <p class="note"><b>Совет:</b> сделайте скриншот сертификата и отправьте преподавателю.</p>
+    <div class="row"><button class="btn ghost" onclick="go('hub')">На карту</button><button class="btn ghost" onclick="resetAll()">Пройти рейс заново</button></div>
+  </section>`);
+  if(!RM) confetti();
+}
+
+/* ============ СТАРТ ============ */
+syncSnd();
+go(state.screen && state.screen!=='final' && state.screen!=='boss' && !/^l\d$/.test(state.screen) ? state.screen : (Object.keys(state.done).length?'hub':'intro'));
+</script>
+
+</body></html>
